@@ -60,7 +60,7 @@ const config: HardhatUserConfig = {
     deployer: {
       default: 0,
     },
-    user: {
+    feeAccount: {
       default: 1,
     },
     trader1: {
