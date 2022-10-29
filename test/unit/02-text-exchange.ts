@@ -188,4 +188,104 @@ describe("Exchange", () => {
       });
     });
   });
+
+  describe("Create Limit Order", () => {
+    describe("Success", () => {
+      let buyOrders: any, sellOrders: any;
+      const amount = tokens(100);
+      const amount2 = tokens(200);
+      const tradeAmount = tokens(10);
+      const price1 = 9;
+      const price2 = 10;
+      beforeEach(async () => {
+        await dex.connect(trader1).depositToken(DAI, amount);
+
+        await dex
+          .connect(trader1)
+          .createLimitOrder(REP, tradeAmount, price1, Status.BUY);
+      });
+      it("should create limit order", async () => {
+        buyOrders = await dex.getOrders(REP, Status.BUY);
+        sellOrders = await dex.getOrders(REP, Status.SELL);
+
+        expect(buyOrders.length).to.equal(1);
+        expect(buyOrders[0].trader).to.equal(trader1.address);
+        expect(buyOrders[0].ticker).to.equal(
+          ethers.utils.formatBytes32String("REP")
+        );
+        expect(buyOrders[0].price).to.equal(9);
+        expect(sellOrders.length).to.equal(0);
+      });
+
+      it("should create a new limit order", async () => {
+        await dex.connect(trader2).depositToken(DAI, amount2);
+
+        await dex
+          .connect(trader2)
+          .createLimitOrder(REP, tradeAmount, price2, Status.BUY);
+
+        buyOrders = await dex.getOrders(REP, Status.BUY);
+        sellOrders = await dex.getOrders(REP, Status.SELL);
+
+        expect(buyOrders.length).to.equal(2);
+        expect(buyOrders[0].trader).to.equal(trader2.address);
+        expect(buyOrders[1].trader).to.equal(trader1.address);
+        expect(buyOrders[0].ticker).to.equal(
+          ethers.utils.formatBytes32String("REP")
+        );
+        expect(buyOrders[1].ticker).to.equal(
+          ethers.utils.formatBytes32String("REP")
+        );
+        expect(buyOrders[0].price).to.equal(10);
+        expect(buyOrders[1].price).to.equal(9);
+        expect(sellOrders.length).to.equal(0);
+      });
+    });
+
+    describe("Failure", () => {
+      let amount = tokens(100);
+      const MKR = ethers.utils.formatBytes32String("MKR");
+      let tradeAmount = tokens(10);
+      const price1 = 9;
+      const price2 = 10;
+      beforeEach(async () => {
+        await dex.connect(trader1).depositToken(DAI, amount);
+      });
+      it("should not create limit order if token does not exist", async () => {
+        await expect(
+          dex
+            .connect(trader1)
+            .createLimitOrder(MKR, tradeAmount, price1, Status.BUY)
+        ).to.be.reverted;
+      });
+      it("should not create a limit order if token is DAI", async () => {
+        await expect(
+          dex
+            .connect(trader1)
+            .createLimitOrder(DAI, tradeAmount, price1, Status.BUY)
+        ).to.be.reverted;
+      });
+      it("should not create limit order if token balance is too low", async () => {
+        amount = tokens(99);
+        await dex.connect(trader1).depositToken(REP, amount);
+
+        tradeAmount = tokens(100);
+
+        await expect(
+          dex
+            .connect(trader1)
+            .createLimitOrder(REP, tradeAmount, price1, Status.SELL)
+        ).to.be.reverted;
+      });
+      it("should not create limit order if DAI balance is too low", async () => {
+        tradeAmount = tokens(200);
+
+        await expect(
+          dex
+            .connect(trader1)
+            .createLimitOrder(REP, tradeAmount, price2, Status.BUY)
+        ).to.be.reverted;
+      });
+    });
+  });
 });
