@@ -37,8 +37,7 @@ describe("Exchange", () => {
     trader1: SignerWithAddress,
     trader2: SignerWithAddress,
     feeAccount: SignerWithAddress,
-    deployer: SignerWithAddress,
-    accounts: SignerWithAddress[];
+    deployer: SignerWithAddress;
 
   const feePercent = 10;
 
@@ -98,6 +97,95 @@ describe("Exchange", () => {
     });
     it("tracks the fee percent", async () => {
       expect(await dex.i_feePercent()).to.equal(feePercent);
+    });
+  });
+
+  describe("Deposit Token", () => {
+    describe("Success", () => {
+      let amount = tokens(100);
+      let result: any, deposit: any;
+      beforeEach(async () => {
+        deposit = await dex.connect(trader1).depositToken(DAI, amount);
+        result = await deposit.wait();
+        // console.log(result.events[2]);
+      });
+
+      it("deposit token to exchange", async () => {
+        const balance = await dex.connect(trader1).getBalance(DAI);
+        expect(balance.toString()).to.equal(amount.toString());
+      });
+
+      it("emits a Deposit event", async () => {
+        const event = result.events[2];
+        expect(event.event).to.equal("Deposit");
+
+        const args = event.args;
+        expect(args.ticker).to.equal(DAI);
+        expect(args.user).to.equal(trader1.address);
+        expect(args.amount).to.equal(amount);
+        expect(args.balance).to.equal(amount);
+      });
+    });
+
+    describe("Failure", () => {
+      it("should not deposit unapproved tokens", async () => {
+        let amount = tokens(100);
+        const MKR = ethers.utils.formatBytes32String("MKR");
+        await expect(dex.connect(trader1).depositToken(MKR, amount)).to.be
+          .reverted;
+      });
+    });
+  });
+
+  describe("Withdraw Tokens", () => {
+    let amount = tokens(100);
+    let result: any, deposit: any, withdraw: any;
+
+    describe("Success", () => {
+      beforeEach(async () => {
+        deposit = await dex.connect(trader1).depositToken(DAI, amount);
+        result = await deposit.wait();
+        withdraw = await dex.connect(trader1).withdrawToken(DAI, amount);
+        result = await withdraw.wait();
+      });
+
+      it("withdraw token from exchange", async () => {
+        const balance = await dex.connect(trader1).getBalance(DAI);
+        expect(balance).to.equal(0);
+      });
+
+      it("emits a Withdraw event", async () => {
+        const event = result.events[1];
+        expect(event.event).to.equal("Withdraw");
+
+        const args = event.args;
+        expect(args.ticker).to.equal(DAI);
+        expect(args.user).to.equal(trader1.address);
+        expect(args.amount).to.equal(amount);
+        expect(args.balance).to.equal(0);
+      });
+    });
+
+    describe("Failure", () => {
+      it("fails to withdraw invalid tokens", async () => {
+        amount = tokens(100);
+        const MKR = ethers.utils.formatBytes32String("MKR");
+        await expect(dex.connect(trader1).withdrawToken(MKR, amount)).to.be
+          .reverted;
+      });
+
+      it("should not withdraw amount bigger than current balance", async () => {
+        amount = tokens(100);
+        const wrongAmount = tokens(110);
+
+        beforeEach(async () => {
+          deposit = await dex.connect(trader1).depositToken(DAI, amount);
+          result = await deposit.wait();
+        });
+
+        await expect(dex.connect(trader1).withdrawToken(DAI, wrongAmount)).to.be
+          .reverted;
+      });
     });
   });
 });
