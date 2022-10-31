@@ -3,11 +3,14 @@ pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "hardhat/console.sol";
 
 error Exchange__InvalidToken();
 error Exchange__LowBalance();
 error Exchange__LowDaiBalance();
 error Exchange__TokenIsNotDai();
+error Exchange__NotOwner();
+error Exchange__InvalidId();
 
 contract Exchange is Ownable {
     // State Variables
@@ -29,6 +32,8 @@ contract Exchange is Ownable {
     // Mapping
     mapping(bytes32 => Token) private s_tokens;
     mapping(bytes32 => mapping(uint256 => Order[])) private s_orderBook;
+    mapping(bytes32 => mapping(uint256 => Order)) private s_orders;
+    mapping(bytes32 => mapping(uint256 => bool)) public s_orderCancelled;
     mapping(address => mapping(bytes32 => uint256)) private s_traderBalances;
 
     // Modifiers
@@ -68,6 +73,14 @@ contract Exchange is Ownable {
         uint256 price,
         uint256 date
     );
+    event Cancel(
+        uint256 tradeId,
+        bytes32 indexed ticker,
+        address indexed trader1,
+        uint256 amount,
+        uint256 price,
+        uint256 date
+    );
 
     // Enum
     enum Status {
@@ -82,14 +95,14 @@ contract Exchange is Ownable {
     }
 
     struct Order {
-        uint256 id; // unique identifier for order
-        address trader; // user who made order
+        uint256 id;
+        address trader;
         Status status;
-        bytes32 ticker; // Address of the token they receive (tokenGive)
-        uint256 amount; // Amount they receive (amountGive)
-        uint256 filled; // Amount they receive (amountGet)
-        uint256 price; // Amount they give (amountGive)
-        uint256 date; // when order was created
+        bytes32 ticker;
+        uint256 amount;
+        uint256 filled;
+        uint256 price;
+        uint256 date;
     }
 
     // Functions
@@ -191,7 +204,7 @@ contract Exchange is Ownable {
         Status status
     ) external tokenExist(_ticker) {
         if (status == Status.SELL) {
-            if (s_traderBalances[msg.sender][_ticker] > _amount)
+            if (s_traderBalances[msg.sender][_ticker] < _amount)
                 revert Exchange__LowBalance();
         }
 
@@ -202,11 +215,11 @@ contract Exchange is Ownable {
         uint256 remaining = _amount;
 
         while (i < orders.length && remaining > 0) {
-            uint256 _feeAmount = (orders[i].filled * i_feePercent) / 100;
             uint256 available = orders[i].amount - orders[i].filled;
             uint256 matched = (remaining > available) ? available : remaining;
             remaining -= matched;
             orders[i].filled += matched;
+            uint256 _feeAmount = (orders[i].filled * i_feePercent) / 100;
             emit NewTrade(
                 s_nextOrderId,
                 orders[i].id,
@@ -219,11 +232,12 @@ contract Exchange is Ownable {
             );
 
             if (status == Status.SELL) {
-                s_traderBalances[msg.sender][_ticker] -= (matched + _feeAmount);
+                s_traderBalances[msg.sender][_ticker] -= matched;
                 s_traderBalances[msg.sender][c_DAI] +=
                     matched *
                     orders[i].price;
-                s_traderBalances[orders[i].trader][_ticker] += matched;
+                s_traderBalances[orders[i].trader][_ticker] += (matched -
+                    _feeAmount);
                 s_traderBalances[orders[i].trader][c_DAI] -=
                     matched *
                     orders[i].price;
@@ -231,12 +245,16 @@ contract Exchange is Ownable {
             }
 
             if (status == Status.BUY) {
-                s_traderBalances[msg.sender][_ticker] -= (matched + _feeAmount);
-                s_traderBalances[msg.sender][c_DAI] +=
+                if (
+                    s_traderBalances[msg.sender][c_DAI] <
+                    matched * orders[i].price
+                ) revert Exchange__LowDaiBalance();
+                s_traderBalances[msg.sender][_ticker] += (matched - _feeAmount);
+                s_traderBalances[msg.sender][c_DAI] -=
                     matched *
                     orders[i].price;
-                s_traderBalances[orders[i].trader][_ticker] += matched;
-                s_traderBalances[orders[i].trader][c_DAI] -=
+                s_traderBalances[orders[i].trader][_ticker] -= matched;
+                s_traderBalances[orders[i].trader][c_DAI] +=
                     matched *
                     orders[i].price;
                 s_traderBalances[i_feeAccount][_ticker] += _feeAmount;
@@ -252,6 +270,15 @@ contract Exchange is Ownable {
             orders.pop();
             i++;
         }
+    }
+
+    function cancelOrder(bytes32 _ticker, uint256 _id) external {
+        Order storage orders = s_orders[_ticker][_id];
+
+        if (address(orders.trader) != msg.sender) revert Exchange__NotOwner();
+        if (orders.id == _id) revert Exchange__InvalidId();
+
+        s_orderCancelled[_ticker][_id] = true;
     }
 
     function getTokens() external view returns (Token[] memory) {

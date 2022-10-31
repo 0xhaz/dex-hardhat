@@ -25,7 +25,7 @@ const Status = {
 };
 
 const tokens = (n: number) => {
-  return ethers.utils.parseUnits(n.toString(), "ether");
+  return ethers.utils.parseEther(n.toString());
 };
 
 describe("Exchange", () => {
@@ -75,9 +75,8 @@ describe("Exchange", () => {
       dex.connect(deployer).addToken(ZRX, zrx.address),
     ]);
 
-    const amount = tokens(1000);
-
     const seedTokenBalance = async (token: any, trader: any) => {
+      const amount = tokens(1000);
       await token.faucet(trader.address, amount);
       await token.connect(trader).approve(dex.address, amount);
     };
@@ -107,7 +106,6 @@ describe("Exchange", () => {
       beforeEach(async () => {
         deposit = await dex.connect(trader1).depositToken(DAI, amount);
         result = await deposit.wait();
-        // console.log(result.events[2]);
       });
 
       it("deposit token to exchange", async () => {
@@ -278,13 +276,161 @@ describe("Exchange", () => {
         ).to.be.reverted;
       });
       it("should not create limit order if DAI balance is too low", async () => {
-        tradeAmount = tokens(200);
+        tradeAmount = tokens(100);
 
         await expect(
           dex
             .connect(trader1)
             .createLimitOrder(REP, tradeAmount, price2, Status.BUY)
         ).to.be.reverted;
+      });
+    });
+  });
+
+  describe("Create Market Order", () => {
+    let amount = tokens(100);
+    let tradeAmount = tokens(10);
+    let tradeAmount2 = tokens(5);
+    let price1 = 9;
+    let price2 = 10;
+    let transaction: any, result: any;
+    beforeEach(async () => {
+      await dex.connect(trader1).depositToken(DAI, amount);
+
+      dex
+        .connect(trader1)
+        .createLimitOrder(REP, tradeAmount, price2, Status.BUY);
+
+      await dex.connect(trader2).depositToken(REP, amount);
+
+      transaction = await dex
+        .connect(trader2)
+        .createMarketOrder(REP, tradeAmount2, Status.SELL);
+      result = await transaction.wait();
+      // console.log(result.events);
+    });
+    describe("Success", () => {
+      it("should create market order, match against existing limit order and charge fees", async () => {
+        const balances = await Promise.all([
+          dex.connect(trader1).getBalance(DAI),
+          dex.connect(trader1).getBalance(REP),
+          dex.connect(trader2).getBalance(DAI),
+          dex.connect(trader2).getBalance(REP),
+          dex.connect(feeAccount).getBalance(REP),
+        ]);
+
+        const orders = await dex.getOrders(REP, Status.BUY);
+
+        expect(orders[0].filled).to.equal(tradeAmount2);
+        expect(balances[0].toString()).to.equal(tokens(50));
+        expect(balances[1].toString()).to.equal(tokens(4.5));
+        expect(balances[2].toString()).to.equal(tokens(50));
+        expect(balances[3].toString()).to.equal(tokens(95));
+        expect(balances[4].toString()).to.equal(tokens(0.5));
+      });
+
+      it("should emit NewTrade event", async () => {
+        const event = result.events[0];
+        expect(event.event).to.equal("NewTrade");
+        // console.log(event);
+
+        const args = event.args;
+        expect(args.tradeId).to.equal(1);
+        expect(args.orderId).to.equal(0);
+        expect(args.ticker).to.equal(REP);
+        expect(args.trader1).to.equal(trader1.address);
+        expect(args.trader2).to.equal(trader2.address);
+        expect(args.amount).to.equal(tradeAmount2);
+        expect(args.price).to.equal(price2);
+        expect(args.date).to.at.least(1);
+      });
+    });
+
+    describe("Failure", () => {
+      let amount = tokens(100);
+      let tradeAmount = tokens(10);
+      let price1 = 9;
+      beforeEach(async () => {
+        await dex.connect(trader1).depositToken(DAI, amount);
+      });
+      it("should not create market order if token does not exist", async () => {
+        const MKR = ethers.utils.formatBytes32String("MKR");
+        await expect(
+          dex
+            .connect(trader1)
+            .createLimitOrder(MKR, tradeAmount, price1, Status.BUY)
+        ).to.be.reverted;
+      });
+
+      it("should not create market order if token is DAI", async () => {
+        await expect(
+          dex
+            .connect(trader1)
+            .createLimitOrder(DAI, tradeAmount, price1, Status.BUY)
+        ).to.be.reverted;
+      });
+
+      it("should not create market order if token balance is too low", async () => {
+        tradeAmount = tokens(1000);
+        await expect(
+          dex
+            .connect(trader1)
+            .createLimitOrder(REP, tradeAmount, price1, Status.BUY)
+        ).to.be.reverted;
+      });
+
+      it("should not create market order if Dai balance is too low", async () => {
+        tradeAmount = tokens(100);
+
+        await dex.connect(trader1).depositToken(REP, amount);
+
+        await dex
+          .connect(trader1)
+          .createLimitOrder(REP, tradeAmount, price1, Status.SELL);
+
+        await expect(
+          dex
+            .connect(trader2)
+            .createLimitOrder(REP, tradeAmount, price1, Status.BUY)
+        ).to.be.reverted;
+      });
+    });
+  });
+
+  describe("Order Actions", async () => {
+    let amount = tokens(100);
+    let tradeAmount = tokens(1);
+    let price1 = 9;
+    let transaction: any, result: any;
+
+    describe("Cancelling Orders", () => {
+      describe("Success", async () => {
+        beforeEach(async () => {
+          await dex.connect(trader1).depositToken(DAI, amount);
+
+          transaction = await dex
+            .connect(trader1)
+            .createLimitOrder(REP, tradeAmount, price1, Status.BUY);
+          result = await transaction.wait();
+
+          transaction = await dex.connect(trader1).cancelOrder(REP, 1);
+          result = await transaction.wait();
+
+          await dex.connect(trader2).depositToken(REP, amount);
+
+          transaction = await dex
+            .connect(trader2)
+            .createMarketOrder(REP, tradeAmount, Status.SELL);
+          result = await transaction.wait();
+
+          transaction = await dex.connect(trader2).cancelOrder(REP, 2);
+          result = await transaction.wait();
+        });
+
+        it("updates cancelled orders", async () => {
+          expect(await dex.s_orderCancelled(REP, 1)).to.equal(true);
+          expect(await dex.s_orderCancelled(REP, 2)).to.equal(true);
+        });
       });
     });
   });
