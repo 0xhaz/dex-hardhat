@@ -8,6 +8,8 @@ export interface networkConfigInfo {
 
 export const developmentChains = ["hardhat", "localhost"];
 
+export const feePercent = 10;
+
 export const networkConfig: networkConfigInfo = {
   localhost: {},
   hardhat: {},

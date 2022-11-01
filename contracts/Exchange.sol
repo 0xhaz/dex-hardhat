@@ -32,7 +32,7 @@ contract Exchange is Ownable {
     // Mapping
     mapping(bytes32 => Token) private s_tokens;
     mapping(bytes32 => mapping(uint256 => Order[])) private s_orderBook;
-    mapping(bytes32 => mapping(uint256 => Order)) private s_orders;
+    mapping(bytes32 => mapping(uint256 => Order)) public s_orders;
     mapping(bytes32 => mapping(uint256 => bool)) public s_orderCancelled;
     mapping(address => mapping(bytes32 => uint256)) private s_traderBalances;
 
@@ -275,8 +275,9 @@ contract Exchange is Ownable {
     function cancelOrder(bytes32 _ticker, uint256 _id) external {
         Order storage orders = s_orders[_ticker][_id];
 
-        if (address(orders.trader) != msg.sender) revert Exchange__NotOwner();
-        if (orders.id == _id) revert Exchange__InvalidId();
+        // require(address(orders.trader) == msg.sender);
+        if (orders.trader != msg.sender) revert Exchange__NotOwner();
+        if (orders.id != _id) revert Exchange__InvalidId();
 
         s_orderCancelled[_ticker][_id] = true;
     }

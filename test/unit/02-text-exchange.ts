@@ -37,7 +37,8 @@ describe("Exchange", () => {
     trader1: SignerWithAddress,
     trader2: SignerWithAddress,
     feeAccount: SignerWithAddress,
-    deployer: SignerWithAddress;
+    deployer: SignerWithAddress,
+    account: SignerWithAddress[];
 
   const feePercent = 10;
 
@@ -47,7 +48,11 @@ describe("Exchange", () => {
 
   beforeEach(async () => {
     await deployments.fixture(["all"]);
-    [deployer, feeAccount, trader1, trader2] = await ethers.getSigners();
+    account = await ethers.getSigners();
+    deployer = account[0];
+    trader1 = account[1];
+    trader2 = account[2];
+    feeAccount = account[3];
 
     const daiFactory = await ethers.getContractFactory("Dai");
     const batFactory = await ethers.getContractFactory("Bat");
@@ -410,7 +415,9 @@ describe("Exchange", () => {
 
           transaction = await dex
             .connect(trader1)
-            .createLimitOrder(REP, tradeAmount, price1, Status.BUY);
+            .createLimitOrder(REP, tradeAmount, price1, Status.BUY, {
+              from: account[1].address,
+            });
           result = await transaction.wait();
 
           transaction = await dex.connect(trader1).cancelOrder(REP, 1);
