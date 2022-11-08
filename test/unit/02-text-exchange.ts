@@ -407,36 +407,54 @@ describe("Exchange", () => {
     let tradeAmount = tokens(1);
     let price1 = 9;
     let transaction: any, result: any;
+    beforeEach(async () => {
+      await dex.connect(trader1).depositToken(DAI, amount);
 
-    describe("Cancelling Orders", () => {
-      describe("Success", async () => {
+      await dex.connect(trader1).depositToken(REP, amount);
+
+      transaction = await dex
+        .connect(trader1)
+        .createLimitOrder(REP, tradeAmount, price1, Status.BUY);
+      result = await transaction.wait();
+
+      await dex.connect(trader2).depositToken(DAI, amount);
+
+      await dex.connect(trader2).depositToken(REP, amount);
+
+      transaction = await dex
+        .connect(trader2)
+        .createMarketOrder(REP, tradeAmount, Status.SELL);
+      result = await transaction.wait();
+    });
+
+    describe("Cancelling Orders", async () => {
+      describe("Success", () => {
         beforeEach(async () => {
-          await dex.connect(trader1).depositToken(DAI, amount);
-
-          transaction = await dex
-            .connect(trader1)
-            .createLimitOrder(REP, tradeAmount, price1, Status.BUY, {
-              from: account[1].address,
-            });
+          transaction = await dex.connect(trader1).cancelOrder(1);
           result = await transaction.wait();
+          console.log(result);
 
-          transaction = await dex.connect(trader1).cancelOrder(REP, 1);
-          result = await transaction.wait();
-
-          await dex.connect(trader2).depositToken(REP, amount);
-
-          transaction = await dex
-            .connect(trader2)
-            .createMarketOrder(REP, tradeAmount, Status.SELL);
-          result = await transaction.wait();
-
-          transaction = await dex.connect(trader2).cancelOrder(REP, 2);
+          transaction = await dex.connect(trader2).cancelOrder(2);
           result = await transaction.wait();
         });
 
-        it("updates cancelled orders", async () => {
-          expect(await dex.s_orderCancelled(REP, 1)).to.equal(true);
-          expect(await dex.s_orderCancelled(REP, 2)).to.equal(true);
+        it("updates canceled orders", async () => {
+          expect(await dex.s_orderCancelled(1)).to.equal(true);
+          expect(await dex.s_orderCancelled(2)).to.equal(true);
+        });
+
+        it("emits a Cancel event", async () => {
+          const event = result.events[0];
+          console.log(event);
+          expect(event.event).to.equal("Cancel");
+          const args = event.args;
+          console.log(args);
+          expect(args.tradeId).to.equal(1);
+          expect(args.ticker).to.equal(REP);
+          expect(args.trader).to.equal(trader1.address);
+          expect(args.amount).to.equal(0);
+          expect(args.price).to.equal(0);
+          expect(args.date).to.at.least(1);
         });
       });
     });

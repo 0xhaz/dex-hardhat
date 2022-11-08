@@ -22,8 +22,6 @@ async function main() {
   const [owner, feeAccount, trader1, trader2, trader3, trader4] =
     await ethers.getSigners();
 
-  const feePercent = 10;
-
   const factories = await Promise.all([
     ethers.getContractFactory("Dai"),
     ethers.getContractFactory("Bat"),
@@ -34,6 +32,8 @@ async function main() {
   const [dai, bat, zrx, rep] = await Promise.all(
     factories.map(f => f.deploy())
   );
+
+  saveFrontendFiles([dai, bat, zrx, rep], ["Dai", "Bat", "Zrx", "Rep"]);
 
   const dex = await ethers.getContractAt(
     contractName,
@@ -53,12 +53,6 @@ async function main() {
   const seedTokenBalance = async (token, trader) => {
     await token.faucet(trader.address, amount);
     await token.connect(trader).approve(dex.address, amount);
-
-    // const ticker = await token.symbol();
-
-    // await dex
-    //   .connect(trader)
-    //   .depositToken(ethers.utils.formatBytes32String(ticker), amount);
   };
 
   const depositAmount = tokens(100);
@@ -158,10 +152,43 @@ async function main() {
   await dex.connect(trader4).createLimitOrder(ZRX, 900, 21, Status.SELL);
 
   console.log(
-    `feeAccount REP ${await dex.connect(feeAccount).getBalance(REP)}`,
-    `feeAccount BAT ${await dex.connect(feeAccount).getBalance(BAT)}`,
-    `feeAccount ZRX ${await dex.connect(feeAccount).getBalance(ZRX)}`
+    `REP ${await dex.connect(feeAccount).getBalance(REP)}`,
+    `BAT ${await dex.connect(feeAccount).getBalance(BAT)}`,
+    `ZRX ${await dex.connect(feeAccount).getBalance(ZRX)}`,
+    `DAI ${await dex.connect(feeAccount).getBalance(DAI)}`
   );
+}
+
+function saveFrontendFiles(tokens: Contract[], tokenNames: string[]) {
+  const contractDir = __dirname + "/../pages/contracts";
+
+  if (!fs.existsSync(contractDir)) {
+    fs.mkdirSync(contractDir);
+  }
+
+  const addresses = tokens.reduce((acc, next, i) => {
+    return {
+      ...acc,
+      [tokenNames[i]]: next.address,
+    };
+  }, {});
+
+  try {
+    const json = JSON.stringify(addresses, undefined, 2);
+    fs.writeFileSync(contractDir + "/token-addresses.json", json);
+  } catch (err) {
+    console.error(err);
+  }
+
+  const erc20Artifact = artifacts.readArtifactSync("Dai");
+  try {
+    fs.writeFileSync(
+      contractDir + `/ERC20.json`,
+      JSON.stringify(erc20Artifact, null, 2)
+    );
+  } catch (err) {
+    console.log(`ERC20 artifact could not be written`);
+  }
 }
 
 main().catch(error => {

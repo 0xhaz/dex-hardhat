@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "hardhat/console.sol";
 
 error Exchange__InvalidToken();
+error Exchange__TransferFailed();
 error Exchange__LowBalance();
 error Exchange__LowDaiBalance();
 error Exchange__TokenIsNotDai();
@@ -15,6 +16,7 @@ error Exchange__InvalidId();
 contract Exchange is Ownable {
     // State Variables
     bytes32[] private tokenList;
+    uint[] private orderIds;
     address private immutable i_owner;
     address public immutable i_feeAccount;
     uint256 public immutable i_feePercent;
@@ -31,9 +33,9 @@ contract Exchange is Ownable {
 
     // Mapping
     mapping(bytes32 => Token) private s_tokens;
-    mapping(bytes32 => mapping(uint256 => Order[])) private s_orderBook;
-    mapping(bytes32 => mapping(uint256 => Order)) public s_orders;
-    mapping(bytes32 => mapping(uint256 => bool)) public s_orderCancelled;
+    mapping(uint256 => Order) private s_orders;
+    mapping(bytes32 => mapping(uint256 => Order[])) public s_orderBook;
+    mapping(uint256 => bool) public s_orderCancelled;
     mapping(address => mapping(bytes32 => uint256)) private s_traderBalances;
 
     // Modifiers
@@ -74,9 +76,9 @@ contract Exchange is Ownable {
         uint256 date
     );
     event Cancel(
-        uint256 tradeId,
+        uint256 indexed tradeId,
         bytes32 indexed ticker,
-        address indexed trader1,
+        address indexed trader,
         uint256 amount,
         uint256 price,
         uint256 date
@@ -105,6 +107,8 @@ contract Exchange is Ownable {
         uint256 date;
     }
 
+    Order[] public _orders;
+
     // Functions
     function addToken(bytes32 _ticker, address _tickerAddress)
         external
@@ -118,11 +122,13 @@ contract Exchange is Ownable {
         external
         tokenExist(_ticker)
     {
-        IERC20(s_tokens[_ticker].tickerAddress).transferFrom(
+        bool success = IERC20(s_tokens[_ticker].tickerAddress).transferFrom(
             msg.sender,
             address(this),
             _amount
         );
+        if (!success) revert Exchange__TransferFailed();
+
         s_traderBalances[msg.sender][_ticker] += _amount;
 
         emit Deposit(
@@ -139,8 +145,15 @@ contract Exchange is Ownable {
     {
         if (s_traderBalances[msg.sender][_ticker] > _amount)
             revert Exchange__LowBalance();
+
         s_traderBalances[msg.sender][_ticker] -= _amount;
-        IERC20(s_tokens[_ticker].tickerAddress).transfer(msg.sender, _amount);
+
+        bool success = IERC20(s_tokens[_ticker].tickerAddress).transfer(
+            msg.sender,
+            _amount
+        );
+
+        if (!success) revert Exchange__TransferFailed();
 
         emit Withdraw(
             _ticker,
@@ -272,14 +285,22 @@ contract Exchange is Ownable {
         }
     }
 
-    function cancelOrder(bytes32 _ticker, uint256 _id) external {
-        Order storage orders = s_orders[_ticker][_id];
+    function cancelOrder(uint256 _id) external {
+        Order storage orders = _orders[_id];
 
-        // require(address(orders.trader) == msg.sender);
-        if (orders.trader != msg.sender) revert Exchange__NotOwner();
-        if (orders.id != _id) revert Exchange__InvalidId();
+        // require(orders.trader == msg.sender);
+        // require(orders.id == _id);
 
-        s_orderCancelled[_ticker][_id] = true;
+        s_orderCancelled[_id] = true;
+
+        emit Cancel(
+            orders.id,
+            orders.ticker,
+            msg.sender,
+            orders.amount,
+            orders.price,
+            block.timestamp
+        );
     }
 
     function getTokens() external view returns (Token[] memory) {
