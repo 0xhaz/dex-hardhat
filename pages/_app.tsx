@@ -8,14 +8,21 @@ import {
   ExchangeDataProvider,
 } from "../contexts/index";
 
-export default function App({ Component, pageProps }: AppProps) {
+type Props = {
+  address: string;
+};
+
+export default function App(
+  { Component, pageProps }: AppProps,
+  { address }: Props
+) {
   return (
     <>
       <ContractProvider>
         <AccountProvider>
           <AppStateProvider>
             <ExchangeDataProvider>
-              <Layout>
+              <Layout address={address}>
                 <Component {...pageProps} />
               </Layout>
             </ExchangeDataProvider>

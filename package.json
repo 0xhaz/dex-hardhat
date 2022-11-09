@@ -41,6 +41,7 @@
     "hardhat-deploy": "^0.11.18",
     "hardhat-gas-reporter": "^1.0.8",
     "react-blockies": "^1.4.1",
+    "react-icons": "^4.6.0",
     "react-modal": "^3.16.1",
     "solidity-coverage": "^0.8.0",
     "styled-components": "^5.3.6",

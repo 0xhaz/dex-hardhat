@@ -7,13 +7,13 @@ interface LayoutProps {
   address: string;
 }
 
-const Layout = () => {
+const Layout = ({ children, address }: LayoutProps) => {
   return (
     <Wrapper>
       <Sidebar />
       <MainContainer>
-        <Header />
-        <main></main>
+        <Header walletAddress={address} />
+        <main>{children}</main>
       </MainContainer>
     </Wrapper>
   );

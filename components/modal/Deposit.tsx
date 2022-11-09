@@ -51,7 +51,7 @@ const Deposit = ({ account }: { account: string }) => {
               <SVG
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
-                class="bi bi-wallet2"
+                className="bi bi-wallet2"
                 viewBox="0 0 24 24"
                 stroke-width="2"
                 stroke="#3773f5"
@@ -65,7 +65,7 @@ const Deposit = ({ account }: { account: string }) => {
               </SVG>
               <div>
                 <Title>Wallet Address</Title>
-                <Account>{`${account.slice(0, 7)}...${account.slice(
+                <Account>{`${account.slice(0, 26)}...${account.slice(
                   35
                 )}`}</Account>
               </div>

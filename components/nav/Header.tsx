@@ -13,10 +13,16 @@ import {
   customStyles,
 } from "../../styles/header.styled";
 import { useAccount } from "../../contexts/index";
+import { navItems } from "../../static/NavItems";
 
 export type headerProps = {
   walletAddress: string;
 };
+
+const data = [
+  { name: "Assets", to: "/Portfolio" },
+  { name: "Trade", to: "/Trade" },
+];
 
 const Header = ({ walletAddress }: headerProps) => {
   const router = useRouter();
@@ -42,7 +48,7 @@ const Header = ({ walletAddress }: headerProps) => {
 
   return (
     <Wrapper>
-      <Title>Assets</Title>
+      <Title></Title>
       <ButtonsContainer>
         <Link href={"/?deposit=1"}>
           <Button style={{ backgroundColor: "#3773f5", color: "#000" }}>
@@ -54,6 +60,7 @@ const Header = ({ walletAddress }: headerProps) => {
       <Modal
         isOpen={!!router.query.deposit}
         onRequestClose={() => router.push("")}
+        ariaHideApp={false}
         style={customStyles}
       >
         <WalletModal />
