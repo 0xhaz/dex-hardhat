@@ -10,6 +10,8 @@ import Guide from "../pages/Guide";
 import Portfolio from "../pages/Portfolio";
 import Staking from "../pages/Staking";
 import Trade from "../pages/Trade";
+import Dropdown from "./hooks/Dropdown";
+import OrderBook from "./hooks/OrderBook";
 
 export {
   Header,
@@ -24,4 +26,6 @@ export {
   Staking,
   Faucet,
   Trade,
+  Dropdown,
+  OrderBook,
 };

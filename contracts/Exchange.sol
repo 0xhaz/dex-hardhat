@@ -16,7 +16,6 @@ error Exchange__InvalidId();
 contract Exchange is Ownable {
     // State Variables
     bytes32[] private tokenList;
-    uint[] private orderIds;
     address private immutable i_owner;
     address public immutable i_feeAccount;
     uint256 public immutable i_feePercent;
@@ -33,9 +32,9 @@ contract Exchange is Ownable {
 
     // Mapping
     mapping(bytes32 => Token) private s_tokens;
-    mapping(uint256 => Order) private s_orders;
-    mapping(bytes32 => mapping(uint256 => Order[])) public s_orderBook;
-    mapping(uint256 => bool) public s_orderCancelled;
+    mapping(bytes32 => mapping(uint256 => Order)) private s_orders;
+    mapping(bytes32 => mapping(uint256 => Order[])) private s_orderBook;
+    mapping(bytes32 => mapping(uint256 => bool)) public s_orderCancelled;
     mapping(address => mapping(bytes32 => uint256)) private s_traderBalances;
 
     // Modifiers
@@ -77,9 +76,11 @@ contract Exchange is Ownable {
     );
     event Cancel(
         uint256 indexed tradeId,
-        bytes32 indexed ticker,
         address indexed trader,
+        Status status,
+        bytes32 indexed ticker,
         uint256 amount,
+        uint256 filled,
         uint256 price,
         uint256 date
     );
@@ -106,8 +107,6 @@ contract Exchange is Ownable {
         uint256 price;
         uint256 date;
     }
-
-    Order[] public _orders;
 
     // Functions
     function addToken(bytes32 _ticker, address _tickerAddress)
@@ -143,7 +142,7 @@ contract Exchange is Ownable {
         external
         tokenExist(_ticker)
     {
-        if (s_traderBalances[msg.sender][_ticker] > _amount)
+        if (s_traderBalances[msg.sender][_ticker] < _amount)
             revert Exchange__LowBalance();
 
         s_traderBalances[msg.sender][_ticker] -= _amount;
@@ -285,19 +284,21 @@ contract Exchange is Ownable {
         }
     }
 
-    function cancelOrder(uint256 _id) external {
-        Order storage orders = _orders[_id];
+    function cancelOrder(bytes32 _ticker, uint256 _id) external {
+        Order storage orders = s_orders[_ticker][_id];
 
         // require(orders.trader == msg.sender);
         // require(orders.id == _id);
 
-        s_orderCancelled[_id] = true;
+        s_orderCancelled[_ticker][_id] = true;
 
         emit Cancel(
             orders.id,
-            orders.ticker,
             msg.sender,
+            orders.status,
+            orders.ticker,
             orders.amount,
+            0,
             orders.price,
             block.timestamp
         );

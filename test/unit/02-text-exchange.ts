@@ -430,22 +430,22 @@ describe("Exchange", () => {
     describe("Cancelling Orders", async () => {
       describe("Success", () => {
         beforeEach(async () => {
-          transaction = await dex.connect(trader1).cancelOrder(1);
+          transaction = await dex.connect(trader1).cancelOrder(REP, 1);
           result = await transaction.wait();
-          console.log(result);
-
-          transaction = await dex.connect(trader2).cancelOrder(2);
+          transaction = await dex
+            .connect(trader2)
+            .cancelOrder(REP, 2, { from: trader2.address });
           result = await transaction.wait();
         });
 
         it("updates canceled orders", async () => {
-          expect(await dex.s_orderCancelled(1)).to.equal(true);
-          expect(await dex.s_orderCancelled(2)).to.equal(true);
+          expect(await dex.s_orderCancelled(REP, 1)).to.equal(true);
+          expect(await dex.s_orderCancelled(REP, 2)).to.equal(true);
         });
 
         it("emits a Cancel event", async () => {
           const event = result.events[0];
-          console.log(event);
+          console.log(event.toString());
           expect(event.event).to.equal("Cancel");
           const args = event.args;
           console.log(args);

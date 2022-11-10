@@ -72,10 +72,10 @@ export const Button = styled.button`
   position: relative;
   align-items: center;
   justify-content: center;
-  padding: 0.5rem 0;
-  border-radius: 0.375rem;
+  padding: 0.5rem 0.5rem;
+  border-radius: 0.5rem;
   margin: 0.2rem 0.1rem;
-  border-color: rgba(229, 231, 235);
+  /* border-color: rgba(229, 231, 235); */
   font-size: 1rem;
   line-height: 1.25rem;
 

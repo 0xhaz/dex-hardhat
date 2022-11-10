@@ -8,7 +8,7 @@ export const navItems = [
     title: "Assets",
     icon: <AiOutlinePieChart />,
     as: "portfolio",
-    path: "/Portfolio",
+    path: "/Porfolio",
   },
   {
     title: "Trade",

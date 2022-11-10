@@ -11,8 +11,12 @@ import { useContract, useAccount, useAppState } from "./index";
 export type ExchangeDataContextValue = {
   deposit: (arg0: string, arg1: string) => void;
   withdraw: (arg0: string, arg1: string) => void;
+  createMarketOrder: (arg0: string, arg1: number) => void;
+  createLimitOrder: (arg0: string, arg1: string, arg2: number) => void;
   currentBalance: number | null;
   tokenBalance: number | null;
+  orders: { buy: any[]; sell: any[] };
+  trades: any[];
 };
 
 export const ExchangeDataContext = createContext<ExchangeDataContextValue>(
@@ -35,6 +39,7 @@ export const ExchangeDataProvider = ({
   const [orders, setOrders] = useState({ buy: [], sell: [] });
   const [currentBalance, setCurrentBalance] = useState(null);
   const [tokenBalance, setTokenBalance] = useState(null);
+  const [trades, setTrades] = useState([]);
 
   const deposit = async (ticker: string, amount: string) => {
     if (account) {
@@ -51,7 +56,7 @@ export const ExchangeDataProvider = ({
       }
 
       try {
-        await contractWithSigner.deposit(
+        await contractWithSigner.depositToken(
           ethers.utils.formatBytes32String(ticker),
           ethers.utils.parseUnits(amount)
         );
@@ -67,7 +72,7 @@ export const ExchangeDataProvider = ({
       const signer = accountProvider?.getSigner();
       const contractWithSigner = contract?.connect(signer);
       try {
-        await contractWithSigner.withdraw(
+        await contractWithSigner.withdrawToken(
           ethers.utils.formatBytes32String(ticker),
           ethers.utils.parseUnits(amount)
         );
@@ -78,6 +83,60 @@ export const ExchangeDataProvider = ({
     }
   };
 
+  const createLimitOrder = useCallback(
+    async (amount: string, price: string, status: number) => {
+      if (selectedMarket) {
+        const signer = accountProvider?.getSigner();
+        const contractWithSigner = contract?.connect(signer);
+        try {
+          await contractWithSigner?.createLimit(
+            ethers.utils.formatBytes32String(selectedMarket),
+            ethers.utils.parseUnits(amount),
+            ethers.utils.parseUnits(price),
+            status
+          );
+        } catch (err) {
+          console.log(err);
+        }
+      }
+    },
+    [selectedMarket, accountProvider, contract]
+  );
+
+  const createMarketOrder = useCallback(
+    async (amount: string, status: number) => {
+      if (selectedMarket) {
+        const signer = await accountProvider?.getSigner();
+        const contractWithSigner = contract?.connect(signer);
+        try {
+          await contractWithSigner?.createMarketOrder(
+            ethers.utils.formatBytes32String(selectedMarket),
+            ethers.utils.parseUnits(amount),
+            status
+          );
+        } catch (err) {
+          console.log(err);
+        }
+      }
+    },
+    [selectedMarket, accountProvider, contract]
+  );
+
+  const fetchOrders = useCallback(
+    async (ticker: string) => {
+      try {
+        const os = await Promise.all([
+          contract?.getOrders(ethers.utils.formatBytes32String(ticker), 0),
+          contract?.getOrders(ethers.utils.formatBytes32String(ticker), 1),
+        ]);
+        setOrders({ buy: os[0], sell: os[1] });
+      } catch (err) {
+        console.log(err);
+      }
+    },
+    [contract]
+  );
+
   const fetchBalances = useCallback(
     async (address: string, ticker: string) => {
       try {
@@ -85,8 +144,17 @@ export const ExchangeDataProvider = ({
         const balance = await contract
           ?.connect(signer)
           .getBalance(ethers.utils.formatBytes32String(ticker));
+        console.log(balance.toString());
 
         setCurrentBalance(balance);
+
+        console.log(balance.toString());
+      } catch (err) {
+        console.log(err);
+      }
+      try {
+        const tokenB = await tokens[ticker]?.balanceOf(address);
+        setTokenBalance(tokenB);
       } catch (err) {
         console.log(err);
       }
@@ -94,15 +162,68 @@ export const ExchangeDataProvider = ({
     [contract, tokens, accountProvider]
   );
 
+  const tradeHandler = useCallback(
+    (
+      tradeId: string,
+      orderId: string,
+      ticker: any,
+      trader1: string,
+      trader2: string,
+      matched: any,
+      price: any,
+      date: any,
+      event: any
+    ) => {
+      const trade = {
+        tradeId,
+        orderId,
+        ticker: ethers.utils.parseBytes32String(ticker),
+        trader1,
+        trader2,
+        matched,
+        price,
+        date,
+      };
+      //   @ts-ignore
+      setTrades(ts => {
+        return [trade, ...ts];
+      });
+    },
+    [setTrades]
+  );
+
+  useEffect(() => {
+    if (selectedMarket) {
+      setTrades([]);
+
+      const filter = contract?.filters.NewTrade(
+        null,
+        null,
+        ethers.utils.formatBytes32String(selectedMarket)
+      );
+      contract?.on(filter, tradeHandler);
+    }
+  }, [selectedMarket, contract]);
+
   useEffect(() => {
     if (account && selectedMarket) {
+      fetchOrders(selectedMarket);
       fetchBalances(account, selectedMarket);
     }
-  }, [fetchBalances, selectedMarket]);
+  }, [fetchOrders, fetchBalances, selectedMarket]);
 
   return (
     <ExchangeDataContext.Provider
-      value={{ deposit, withdraw, currentBalance, tokenBalance }}
+      value={{
+        deposit,
+        withdraw,
+        currentBalance,
+        tokenBalance,
+        orders,
+        trades,
+        createMarketOrder,
+        createLimitOrder,
+      }}
     >
       {children}
     </ExchangeDataContext.Provider>

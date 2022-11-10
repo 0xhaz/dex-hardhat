@@ -2,29 +2,25 @@ import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import Modal from "react-modal";
-import { WalletModal } from "../index";
+import { WalletModal, Title } from "../index";
+import propTypes from "prop-types";
+import { navItems } from "../../static/NavItems";
 import {
   Wrapper,
   Button,
-  Title,
   ButtonsContainer,
-  myBlockies,
+  TextTitle,
   Text,
   customStyles,
 } from "../../styles/header.styled";
 import { useAccount } from "../../contexts/index";
-import { navItems } from "../../static/NavItems";
 
 export type headerProps = {
   walletAddress: string;
+  title: string;
 };
 
-const data = [
-  { name: "Assets", to: "/Portfolio" },
-  { name: "Trade", to: "/Trade" },
-];
-
-const Header = ({ walletAddress }: headerProps) => {
+const Header = ({ title }: headerProps) => {
   const router = useRouter();
 
   const ButtonGroup = () => {
@@ -48,7 +44,9 @@ const Header = ({ walletAddress }: headerProps) => {
 
   return (
     <Wrapper>
-      <Title></Title>
+      <TextTitle>
+        <Title title={title} />
+      </TextTitle>
       <ButtonsContainer>
         <Link href={"/?deposit=1"}>
           <Button style={{ backgroundColor: "#3773f5", color: "#000" }}>
@@ -59,7 +57,7 @@ const Header = ({ walletAddress }: headerProps) => {
       </ButtonsContainer>
       <Modal
         isOpen={!!router.query.deposit}
-        onRequestClose={() => router.push("")}
+        onRequestClose={() => router.push("/Trade")}
         ariaHideApp={false}
         style={customStyles}
       >
@@ -70,3 +68,7 @@ const Header = ({ walletAddress }: headerProps) => {
 };
 
 export default Header;
+
+Header.propTypes = {
+  title: propTypes.string,
+};

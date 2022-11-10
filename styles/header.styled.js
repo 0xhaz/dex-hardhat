@@ -10,7 +10,7 @@ export const Wrapper = styled.div`
   z-index: 1;
 `;
 
-export const Title = styled.div`
+export const TextTitle = styled.div`
   font-size: 2rem;
   font-weight: 600;
   flex: 1;
