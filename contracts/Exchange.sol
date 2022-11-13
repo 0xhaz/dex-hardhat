@@ -285,21 +285,21 @@ contract Exchange is Ownable {
     }
 
     function cancelOrder(bytes32 _ticker, uint256 _id) external {
-        Order storage orders = s_orders[_ticker][_id];
+        // Order storage orders = s_orders[_ticker][_id];
 
-        // require(orders.trader == msg.sender);
+        // require(s_orders[_ticker][_id].trader == msg.sender);
         // require(orders.id == _id);
 
         s_orderCancelled[_ticker][_id] = true;
 
         emit Cancel(
-            orders.id,
+            s_orders[_ticker][_id].id,
             msg.sender,
-            orders.status,
-            orders.ticker,
-            orders.amount,
+            s_orders[_ticker][_id].status,
+            s_orders[_ticker][_id].ticker,
+            s_orders[_ticker][_id].amount,
             0,
-            orders.price,
+            s_orders[_ticker][_id].price,
             block.timestamp
         );
     }

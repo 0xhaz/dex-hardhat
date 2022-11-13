@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import Image from "next/image";
-import CoinbaseLogo from "../../assets/cb-logo.png";
+import CoinbaseLogo from "/public/cb-logo.png";
 import { navItems } from "../../static/NavItems";
 import {
   Wrapper,

@@ -10,7 +10,7 @@ import {
   DropDownContainer,
   ChartContainer,
 } from "../styles/trade.styled";
-import { Dropdown, OrderBook } from "../components/index";
+import { Dropdown, OrderBook, PriceChart } from "../components/index";
 import { useContract, useAccount, useAppState } from "../contexts/index";
 
 const Trade = () => {
@@ -32,6 +32,7 @@ const Trade = () => {
             onSelect={handSelect}
           />
         </DropDownContainer>
+        <PriceChart />
         <OrderBook />
       </Main>
     </Wrapper>

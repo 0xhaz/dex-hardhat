@@ -12,6 +12,7 @@ import Staking from "../pages/Staking";
 import Trade from "../pages/Trade";
 import Dropdown from "./hooks/Dropdown";
 import OrderBook from "./hooks/OrderBook";
+import PriceChart from "./hooks/PriceChart";
 
 export {
   Header,
@@ -28,4 +29,5 @@ export {
   Trade,
   Dropdown,
   OrderBook,
+  PriceChart,
 };

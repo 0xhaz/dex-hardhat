@@ -17,6 +17,7 @@ export type ExchangeDataContextValue = {
   tokenBalance: number | null;
   orders: { buy: any[]; sell: any[] };
   trades: any[];
+  priceChartSelector: () => void;
 };
 
 export const ExchangeDataContext = createContext<ExchangeDataContextValue>(
@@ -40,6 +41,7 @@ export const ExchangeDataProvider = ({
   const [currentBalance, setCurrentBalance] = useState(null);
   const [tokenBalance, setTokenBalance] = useState(null);
   const [trades, setTrades] = useState([]);
+  const [symbols, setSymbols] = useState("");
 
   const deposit = async (ticker: string, amount: string) => {
     if (account) {
@@ -122,6 +124,17 @@ export const ExchangeDataProvider = ({
     [selectedMarket, accountProvider, contract]
   );
 
+  const loadTokens = useCallback(
+    async (address: string, ticker: string) => {
+      try {
+        const token = tokens[ticker]?.symbol(address);
+      } catch (err) {
+        console.log(err);
+      }
+    },
+    [tokens]
+  );
+
   const fetchOrders = useCallback(
     async (ticker: string) => {
       try {
@@ -136,6 +149,30 @@ export const ExchangeDataProvider = ({
     },
     [contract]
   );
+
+  const priceChartSelector = useCallback(async () => {
+    if (selectedMarket) {
+      const signer = await accountProvider?.getSigner();
+      const contractWithSigner = contract?.connect(signer);
+      try {
+        const block = await contract?.getBlockNumber();
+        const tradeStream = await contractWithSigner.queryFilter(
+          "NewTrade",
+          0,
+          block
+        );
+        const filledOrders = tradeStream.map(event => event.args);
+        let secondLastOrder, lastOrder;
+
+        [secondLastOrder, lastOrder] = orders[1].slice(
+          orders[1].length - 2,
+          orders[1].length
+        );
+      } catch (err) {
+        console.log(err);
+      }
+    }
+  }, [selectedMarket, contract, accountProvider, orders]);
 
   const fetchBalances = useCallback(
     async (address: string, ticker: string) => {
@@ -223,6 +260,7 @@ export const ExchangeDataProvider = ({
         trades,
         createMarketOrder,
         createLimitOrder,
+        priceChartSelector,
       }}
     >
       {children}
