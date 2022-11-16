@@ -13,6 +13,7 @@ import Trade from "../pages/Trade";
 import Dropdown from "./hooks/Dropdown";
 import OrderBook from "./hooks/OrderBook";
 import PriceChart from "./hooks/PriceChart";
+import NewOrder from "./hooks/NewOrder";
 
 export {
   Header,
@@ -30,4 +31,5 @@ export {
   Dropdown,
   OrderBook,
   PriceChart,
+  NewOrder,
 };

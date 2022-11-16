@@ -10,7 +10,7 @@ import {
   DropDownContainer,
   ChartContainer,
 } from "../styles/trade.styled";
-import { Dropdown, OrderBook, PriceChart } from "../components/index";
+import { Dropdown, OrderBook, PriceChart, NewOrder } from "../components/index";
 import { useContract, useAccount, useAppState } from "../contexts/index";
 
 const Trade = () => {
@@ -18,7 +18,7 @@ const Trade = () => {
   const { account } = useAccount();
   const { state, dispatch } = useAppState();
 
-  const handSelect = (market: string) => {
+  const handleSelect = (market: string) => {
     dispatch({ type: "CHANGE_MARKET", payload: market });
   };
   return (
@@ -29,10 +29,11 @@ const Trade = () => {
           <Dropdown
             label={"Select Market"}
             items={Object.keys(tokens)}
-            onSelect={handSelect}
+            onSelect={handleSelect}
           />
         </DropDownContainer>
         <PriceChart />
+        <NewOrder />
         <OrderBook />
       </Main>
     </Wrapper>
