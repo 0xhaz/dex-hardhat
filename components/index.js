@@ -14,6 +14,7 @@ import Dropdown from "./hooks/Dropdown";
 import OrderBook from "./hooks/OrderBook";
 import PriceChart from "./hooks/PriceChart";
 import NewOrder from "./hooks/NewOrder";
+import MyOrders from "./hooks/MyOrders";
 
 export {
   Header,
@@ -32,4 +33,5 @@ export {
   OrderBook,
   PriceChart,
   NewOrder,
+  MyOrders,
 };

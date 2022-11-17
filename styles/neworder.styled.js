@@ -6,6 +6,7 @@ export const Wrapper = styled.div`
   padding: 0.75em 1.75em;
   margin: 0.75em;
   min-height: 325px;
+  max-width: 34%;
 `;
 
 export const Header = styled.div`
@@ -25,7 +26,6 @@ export const Title = styled.h2`
 `;
 
 export const Tabs = styled.div`
-  background: #0d121d;
   border-radius: 10px;
   padding: 0.2em;
   display: grid;
@@ -43,25 +43,27 @@ export const Label = styled.label`
 
 export const Input = styled.input`
   display: block;
-  width: 100%;
+  width: 95%;
   border: none;
-  font-size: 1rem;
-  padding: 5px;
-  background: #121a29;
+  font-size: 0.85rem;
+  padding: 10px 5px;
+  background: #0d121d;
+  margin-bottom: 20px;
   &:focus {
     background-color: rgb(35, 57, 77);
   }
 `;
 
 export const Button = styled.button`
-  background: transparent;
-  min-width: 6em;
+  background: #0d121d;
+  min-width: 10em;
   padding: 0.5em 0.75em;
+  margin-right: 0.5rem;
   border: none;
   border-radius: 8px;
   font-weight: 500;
   cursor: pointer;
-  position: relative;
+  align-items: center;
 `;
 
 export const selectedStyle = {

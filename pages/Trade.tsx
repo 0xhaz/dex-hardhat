@@ -10,7 +10,13 @@ import {
   DropDownContainer,
   ChartContainer,
 } from "../styles/trade.styled";
-import { Dropdown, OrderBook, PriceChart, NewOrder } from "../components/index";
+import {
+  Dropdown,
+  OrderBook,
+  PriceChart,
+  NewOrder,
+  MyOrders,
+} from "../components/index";
 import { useContract, useAccount, useAppState } from "../contexts/index";
 
 const Trade = () => {
@@ -34,6 +40,7 @@ const Trade = () => {
         </DropDownContainer>
         <PriceChart />
         <NewOrder />
+        <MyOrders />
         <OrderBook />
       </Main>
     </Wrapper>

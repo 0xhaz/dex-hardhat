@@ -91,7 +91,7 @@ export const ExchangeDataProvider = ({
         const signer = accountProvider?.getSigner();
         const contractWithSigner = contract?.connect(signer);
         try {
-          await contractWithSigner?.createLimit(
+          await contractWithSigner?.createLimitOrder(
             ethers.utils.formatBytes32String(selectedMarket),
             ethers.utils.parseUnits(amount),
             ethers.utils.parseUnits(price),

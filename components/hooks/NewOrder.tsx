@@ -41,6 +41,7 @@ const NewOrder = () => {
       ...s,
       [k]: value,
     }));
+    console.log(value);
   };
 
   const handleSave = () => {
@@ -86,14 +87,14 @@ const NewOrder = () => {
             <Button
               style={form.status === Status.BUY ? selectedStyle : null}
               type="button"
-              onClick={() => change("side")(Status.BUY)}
+              onClick={() => change("status")(Status.BUY)}
             >
               BUY
             </Button>
             <Button
               style={form.status === Status.SELL ? selectedStyle : null}
               type="button"
-              onClick={() => change("side")(Status.SELL)}
+              onClick={() => change("status")(Status.SELL)}
             >
               SELL
             </Button>
@@ -128,10 +129,19 @@ const NewOrder = () => {
       </div>
       <div>
         <div>
-          <Button type="button" onClick={() => setForm(initialData)}>
+          <Button
+            style={{ backgroundColor: "#3773f5" }}
+            type="button"
+            onClick={() => setForm(initialData)}
+          >
             Cancel
           </Button>
-          <Button type="button" onClick={handleSave}>
+
+          <Button
+            style={{ backgroundColor: "#3773f5" }}
+            type="button"
+            onClick={handleSave}
+          >
             Send
           </Button>
         </div>

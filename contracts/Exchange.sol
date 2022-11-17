@@ -169,7 +169,7 @@ contract Exchange is Ownable {
         Status status
     ) external tokenIsNotDai(_ticker) tokenExist(_ticker) {
         if (status == Status.SELL) {
-            if (s_traderBalances[msg.sender][_ticker] <= _amount)
+            if (s_traderBalances[msg.sender][_ticker] < _amount)
                 revert Exchange__LowBalance();
         } else {
             if (s_traderBalances[msg.sender][c_DAI] < _amount)
